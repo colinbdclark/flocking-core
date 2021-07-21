@@ -41,30 +41,33 @@ jobs:
         if: runner.os == 'Linux'
         run: jackd -r -d dummy &
 
-      - working-directory: flocking_runtime
-
       - name: cargo check
+        working-directory: flocking_runtime
         uses: actions-rs/cargo@v1
         with:
           command: check
 
       - name: cargo clippy
+        working-directory: flocking_runtime
         uses: actions-rs/cargo@v1
         with:
           command: clippy
 
       - name: cargo test
+        working-directory: flocking_runtime
         uses: actions-rs/cargo@v1
         with:
           command: test
 
       - name: cargo build
+        working-directory: flocking_runtime
         uses: actions-rs/cargo@v1
         with:
           command: build
 
       # Run examples
       - name: run print_audio_tree example
+        working-directory: flocking_runtime
         env:
           RUST_BACKTRACE: 1
         uses: actions-rs/cargo@v1
@@ -73,6 +76,7 @@ jobs:
           args: --example print_audio_tree
 
       - name: run run_composition example
+        working-directory: flocking_runtime
         env:
           RUST_BACKTRACE: 1
         uses: actions-rs/cargo@v1

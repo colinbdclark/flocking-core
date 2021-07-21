@@ -13,7 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
+      - run: cd flocking_runtime
+
       - uses: actions-rs/audit-check@v1
-        working-directory: flocking_runtime
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

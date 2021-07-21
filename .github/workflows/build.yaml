@@ -81,4 +81,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: run
-          args: --manifest-path flocking_runtime/Cargo.toml --example run_composition flocking_cpal/examples/run_composition/test_composition.json
+          args: --manifest-path flocking_runtime/Cargo.toml --example run_composition flocking_runtime/flocking_cpal/examples/run_composition/test_composition.json

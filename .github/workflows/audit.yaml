@@ -2,7 +2,7 @@ name: security-audit
 
 on:
   push:
-    paths: 
+    paths:
       - '**/Cargo.toml'
       - '**/Cargo.lock'
 
@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - working-directory: flocking_runtime
+
       - uses: actions/checkout@v1
 
       - uses: actions-rs/audit-check@v1

@@ -45,7 +45,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path flocking_runtime
+          args: --manifest-path flocking_runtime/Cargo.toml
 
       - name: cargo clippy
         uses: actions-rs/cargo@v1

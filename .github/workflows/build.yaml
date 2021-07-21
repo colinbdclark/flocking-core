@@ -12,7 +12,6 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - working-directory: flocking_runtime
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
@@ -41,6 +40,8 @@ jobs:
       - name: Start jackd on Linux
         if: runner.os == 'Linux'
         run: jackd -r -d dummy &
+
+      - working-directory: flocking_runtime
 
       - name: cargo check
         uses: actions-rs/cargo@v1

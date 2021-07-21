@@ -1,4 +1,4 @@
-name: build-and-run
+name: Build and run runtime crates
 
 on: [push, pull_request]
 

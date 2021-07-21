@@ -46,6 +46,9 @@ jobs:
         with:
           command: check
 
+      - name: Change directory to flocking_runtime
+        run: cd flocking_runtime
+
       - name: cargo clippy
         uses: actions-rs/cargo@v1
         with:

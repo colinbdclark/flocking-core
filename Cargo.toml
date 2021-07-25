@@ -1,2 +1,2 @@
 [workspace]
-members = ["flocking", "flocking_cpal"]
+members = ["libflock", "flocking", "flocking_cpal"]

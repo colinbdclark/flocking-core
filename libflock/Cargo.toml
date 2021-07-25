@@ -1,0 +1,11 @@
+[package]
+name = "libflock"
+version = "0.0.1"
+authors = ["Colin Clark <colinbdclark@gmail.com>"]
+edition = "2018"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

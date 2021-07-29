@@ -4,6 +4,12 @@ version = "0.0.1"
 authors = ["Colin Clark <colinbdclark@gmail.com>"]
 edition = "2018"
 
+[dependencies]
+libm = "0.2.1"
+
+[features]
+lowmem = []
+
 [profile.dev]
 panic = "abort"
 

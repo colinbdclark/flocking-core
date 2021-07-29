@@ -1,0 +1,6 @@
+[parse]
+parse_deps = true
+include = ["nanorand-abi"]
+
+[defines]
+"feature = lowmem" = "LOWMEM"

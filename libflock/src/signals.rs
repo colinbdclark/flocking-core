@@ -5,13 +5,11 @@ pub const TWO_PI: f32 = 2.0 * PI;
 
 #[cfg(feature = "lowmem")]
 pub const MAX_BLOCK_SIZE: usize = 64;
-
 #[cfg(not(feature = "lowmem"))]
 pub const MAX_BLOCK_SIZE: usize = 128;
 
 #[cfg(feature = "lowmem")]
 pub const MAX_CHANNEL_COUNT: usize = 2;
-
 #[cfg(not(feature = "lowmem"))]
 pub const MAX_CHANNEL_COUNT: usize = 8;
 
@@ -42,6 +40,12 @@ pub extern "C" fn MultichannelBuffer_new_silent() -> MultichannelBuffer {
 
 pub trait Signal {
     fn generate(&mut self);
+}
+
+#[repr(C)]
+pub struct Connection<'a> {
+    pub buffer: &'a MultichannelBuffer,
+    pub step_size: usize
 }
 
 #[repr(C)]
@@ -91,6 +95,7 @@ pub extern "C" fn Value_generate(value: &mut Value) {
     value.generate()
 }
 
+// TODO: Express these as Connections.
 #[repr(C)]
 pub struct SineInputs {
     pub freq: MultichannelBuffer,
@@ -104,7 +109,7 @@ pub struct Sine {
     pub settings: AudioSettings,
     pub inputs: SineInputs,
     pub output: MultichannelBuffer,
-    pub current_phase: f32
+    pub phase_accumulator: f32
 }
 
 impl Signal for Sine {
@@ -115,15 +120,20 @@ impl Signal for Sine {
             let channel = &mut self.output.channels[i];
             for j in 0..self.settings.block_size {
                 // TODO: Handle non-audio rate inputs.
-                let sample = libm::sinf(self.current_phase +
+                // TODO: Is this phase modulation actually correct?
+                let sample = libm::sinf(self.phase_accumulator +
                     self.inputs.phase.channels[i][j]);
                 let scaled = sample * self.inputs.mul.channels[i][j] +
                     self.inputs.add.channels[i][j];
 
                 channel[j] = scaled;
 
-                self.current_phase += self.inputs.freq.channels[i][j] /
-                    self.settings.sample_rate * TWO_PI;
+                let phase_step = self.inputs.freq.channels[i][j] *
+                    TWO_PI / self.settings.sample_rate;
+
+                // TODO: This will overflow.
+                // Reset it after we've done a full cycle? (>TWO_PI)
+                self.phase_accumulator += phase_step;
             }
         }
     }
@@ -143,7 +153,7 @@ pub extern "C" fn Sine_new(settings: AudioSettings) -> Sine{
             add: MultichannelBuffer_new_with_value(0.0)
         },
         output: MultichannelBuffer_new_silent(),
-        current_phase: 0.0
+        phase_accumulator: 0.0
     }
 }
 
@@ -208,7 +218,8 @@ mod tests {
             expected,
             sine_signal.output.channels[0],
             sine_signal.settings.block_size
-        );    }
+        );
+    }
 
     #[test]
     fn sin_is_offset() {

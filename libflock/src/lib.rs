@@ -3,9 +3,3 @@
 #![no_std]
 
 pub mod signals;
-
-#[cfg(not(test))]
-#[panic_handler]
-fn panic(_panic: &core::panic::PanicInfo) -> ! {
-    loop {}
-}

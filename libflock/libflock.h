@@ -47,7 +47,7 @@ struct Value {
 
 struct SineInputs {
   MultichannelBuffer freq;
-  MultichannelBuffer phase;
+  MultichannelBuffer phase_offset;
   MultichannelBuffer mul;
   MultichannelBuffer add;
 };
@@ -56,7 +56,7 @@ struct Sine {
   AudioSettings settings;
   SineInputs inputs;
   MultichannelBuffer output;
-  float current_phase;
+  float phase_accumulator;
 };
 
 extern "C" {

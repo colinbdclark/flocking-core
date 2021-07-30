@@ -30,6 +30,34 @@ pub struct AudioSettings {
 
 #[derive(Debug)]
 #[repr(C)]
+pub struct MonoBuffer {
+    pub samples: [f32; MAX_BLOCK_SIZE]
+}
+
+impl MonoBuffer {
+    pub fn new_with_value(value: f32) -> MonoBuffer {
+        MonoBuffer {
+            samples: [value; MAX_BLOCK_SIZE]
+        }
+    }
+
+    pub fn new_silent() -> MonoBuffer {
+        MonoBuffer::new_with_value(0.0)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn MonoBuffer_new_with_value(value: f32) -> MonoBuffer {
+    MonoBuffer::new_with_value(value)
+}
+
+#[no_mangle]
+pub extern "C" fn MonoBuffer_new_silent() -> MonoBuffer {
+    MonoBuffer::new_silent()
+}
+
+#[derive(Debug)]
+#[repr(C)]
 pub struct MultichannelBuffer {
     pub channels: [[f32; MAX_BLOCK_SIZE]; MAX_CHANNEL_COUNT]
 }
@@ -62,7 +90,7 @@ pub trait Signal {
 
 #[repr(C)]
 pub struct Connection<'a> {
-    pub buffer: &'a MultichannelBuffer,
+    pub buffer: &'a MonoBuffer,
     pub step_size: usize
 }
 
@@ -75,8 +103,21 @@ pub struct ValueParameters {
 pub struct Value {
     pub settings: AudioSettings,
     pub parameters: ValueParameters,
-    pub output: MultichannelBuffer,
+    pub output: MonoBuffer,
     pub last_sample: f32
+}
+
+impl Value {
+    pub fn new(settings: AudioSettings) -> Value {
+        Value {
+            settings,
+            parameters: ValueParameters {
+                value: 0.0
+            },
+            output: MonoBuffer::new_silent(),
+            last_sample: 0.0
+        }
+    }
 }
 
 impl Signal for Value {
@@ -88,27 +129,15 @@ impl Signal for Value {
             return
         }
 
-        let channel_iter = self.output.channels.iter_mut().take(
-            self.settings.num_channels);
-
-        for channel in channel_iter {
-            for j in 0..self.settings.block_size {
-                channel[j] = self.parameters.value;
-            }
+        for i in 0..self.settings.block_size {
+            self.output.samples[i] = self.parameters.value;
         }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn Value_new(settings: AudioSettings) -> Value {
-    Value {
-        settings,
-        parameters: ValueParameters {
-            value: 0.0
-        },
-        output: MultichannelBuffer_new_silent(),
-        last_sample: 0.0
-    }
+    Value::new(settings)
 }
 
 #[no_mangle]
@@ -119,17 +148,17 @@ pub extern "C" fn Value_generate(value: &mut Value) {
 // TODO: Express these as Connections.
 #[repr(C)]
 pub struct SineInputs {
-    pub freq: MultichannelBuffer,
-    pub phase_offset: MultichannelBuffer,
-    pub mul: MultichannelBuffer,
-    pub add: MultichannelBuffer
+    pub freq: MonoBuffer,
+    pub phase_offset: MonoBuffer,
+    pub mul: MonoBuffer,
+    pub add: MonoBuffer
 }
 
 #[repr(C)]
 pub struct Sine {
     pub settings: AudioSettings,
     pub inputs: SineInputs,
-    pub output: MultichannelBuffer,
+    pub output: MonoBuffer,
     pub phase_accumulator: f32
 }
 
@@ -141,12 +170,12 @@ impl Sine {
             // TODO: Remove hardcoding, introduce Connections,
             // bind to Value signals, implement default merging.
             inputs: SineInputs {
-                freq: MultichannelBuffer_new_with_value(440.0),
-                phase_offset: MultichannelBuffer_new_with_value(0.0),
-                mul: MultichannelBuffer_new_with_value(1.0),
-                add: MultichannelBuffer_new_with_value(0.0)
+                freq: MonoBuffer::new_with_value(440.0),
+                phase_offset: MonoBuffer::new_with_value(0.0),
+                mul: MonoBuffer::new_with_value(1.0),
+                add: MonoBuffer::new_with_value(0.0)
             },
-            output: MultichannelBuffer_new_silent(),
+            output: MonoBuffer::new_silent(),
             phase_accumulator: 0.0
         }
     }
@@ -156,28 +185,22 @@ impl Signal for Sine {
     fn generate(&mut self) {
         // TODO: Write a macro to handle to the core loop boilerplate
         // and scaling/offset logic.
-        for i in 0..self.settings.num_channels {
-            // TODO: Remove unncessarily multichannelized inputs.
-            let channel = &mut self.output.channels[i];
-            let freq = self.inputs.freq.channels[i];
-            let phase_offset = self.inputs.phase_offset.channels[i];
-            let mul = self.inputs.mul.channels[i];
-            let add = self.inputs.add.channels[i];
 
-            for j in 0..self.settings.block_size {
-                // TODO: Do negative values need to be handled?
-                let modulated_phase = (self.phase_accumulator +
-                    phase_offset[j]) % TWO_PI;
+        for i in 0..self.settings.block_size {
+            // TODO: Do negative values need to be handled?
+            let modulated_phase = (self.phase_accumulator +
+                self.inputs.phase_offset.samples[i]) % TWO_PI;
 
-                channel[j] = libm::sinf(modulated_phase) * mul[j] + add[j];
+            self.output.samples[i] = libm::sinf(modulated_phase) *
+                self.inputs.mul.samples[i] +
+                self.inputs.add.samples[i];
 
-                let phase_step = freq[j] / self.settings.sample_rate *
-                    TWO_PI;
+            let phase_step = self.inputs.freq.samples[i] /
+                self.settings.sample_rate * TWO_PI;
 
-                self.phase_accumulator += phase_step;
-                if self.phase_accumulator > TWO_PI {
-                    self.phase_accumulator -= TWO_PI;
-                }
+            self.phase_accumulator += phase_step;
+            if self.phase_accumulator > TWO_PI {
+                self.phase_accumulator -= TWO_PI;
             }
         }
     }
@@ -191,6 +214,34 @@ pub extern "C" fn Sine_new(settings: AudioSettings) -> Sine {
 #[no_mangle]
 pub extern "C" fn Sine_generate(sine: &mut Sine) {
     sine.generate()
+}
+
+
+#[repr(C)]
+pub struct FanInputs {
+    pub source: MonoBuffer
+}
+
+#[repr(C)]
+pub struct Fan {
+    pub settings: AudioSettings,
+    pub inputs: FanInputs,
+    pub output: MultichannelBuffer
+}
+
+impl Signal for Fan {
+    fn generate(&mut self) {
+        for i in 0..self.settings.num_channels {
+            let mut channel = self.output.channels[i];
+            channel[0..self.settings.block_size].clone_from_slice(
+                &self.inputs.source.samples[0..self.settings.block_size]);
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Fan_generate(fan: &mut Fan) {
+    fan.generate()
 }
 
 #[cfg(test)]
@@ -246,7 +297,7 @@ mod tests {
             expected[i] = 1.0;
         }
 
-        let actual = value_signal.output.channels[0];
+        let actual = value_signal.output.samples;
 
         assert!(
             actual.iter().zip(expected.iter()).all(|(a, b)| a == b),
@@ -269,7 +320,7 @@ mod tests {
 
         assert_f32_buffer_eq(
             expected,
-            sine_signal.output.channels[0],
+            sine_signal.output.samples,
             sine_signal.settings.block_size
         );
     }
@@ -285,17 +336,16 @@ mod tests {
             block_size: 64,
             num_channels: 1
         });
-        sine_signal.inputs.add = MultichannelBuffer_new_with_value(1.0);
+        sine_signal.inputs.add = MonoBuffer::new_with_value(1.0);
 
         Sine_generate(&mut sine_signal);
 
         assert_f32_buffer_eq(
             expected,
-            sine_signal.output.channels[0],
+            sine_signal.output.samples,
             sine_signal.settings.block_size
         );
     }
-
 
     #[test]
     fn sin_accumulates_phase() {

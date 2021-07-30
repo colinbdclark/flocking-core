@@ -24,6 +24,10 @@ static const uintptr_t MAX_CHANNEL_COUNT = 2;
 static const uintptr_t MAX_CHANNEL_COUNT = 8;
 #endif
 
+struct MonoBuffer {
+  float samples[MAX_BLOCK_SIZE];
+};
+
 struct MultichannelBuffer {
   float channels[MAX_CHANNEL_COUNT][MAX_BLOCK_SIZE];
 };
@@ -41,25 +45,39 @@ struct ValueParameters {
 struct Value {
   AudioSettings settings;
   ValueParameters parameters;
-  MultichannelBuffer output;
+  MonoBuffer output;
   float last_sample;
 };
 
 struct SineInputs {
-  MultichannelBuffer freq;
-  MultichannelBuffer phase_offset;
-  MultichannelBuffer mul;
-  MultichannelBuffer add;
+  MonoBuffer freq;
+  MonoBuffer phase_offset;
+  MonoBuffer mul;
+  MonoBuffer add;
 };
 
 struct Sine {
   AudioSettings settings;
   SineInputs inputs;
-  MultichannelBuffer output;
+  MonoBuffer output;
   float phase_accumulator;
 };
 
+struct FanInputs {
+  MonoBuffer source;
+};
+
+struct Fan {
+  AudioSettings settings;
+  FanInputs inputs;
+  MultichannelBuffer output;
+};
+
 extern "C" {
+
+MonoBuffer MonoBuffer_new_with_value(float value);
+
+MonoBuffer MonoBuffer_new_silent();
 
 MultichannelBuffer MultichannelBuffer_new_with_value(float value);
 
@@ -72,5 +90,7 @@ void Value_generate(Value *value);
 Sine Sine_new(AudioSettings settings);
 
 void Sine_generate(Sine *sine);
+
+void Fan_generate(Fan *fan);
 
 } // extern "C"

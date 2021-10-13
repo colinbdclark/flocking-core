@@ -1,6 +1,6 @@
-# Flocking Core (in Rust)
+# Flocking Core (in C)
 
-This project is an early-stage effort to rewrite and redesign the core signal processing layers of [Flocking](https://flockingjs.org) in Rust. The goal is to support instruments that can be deployed without modification across different devices and platforms, with a particular emphasis on the Web and embedded platforms such as Eurorack.
+This project is an early-stage effort to rewrite and redesign the core signal processing layers of [Flocking](https://flockingjs.org) in C. The goal is to support instruments that can be deployed without modification across different devices and platforms, with a particular emphasis on the Web and embedded platforms such as Eurorack.
 
 ## Goals
 
@@ -24,9 +24,9 @@ This project is an early-stage effort to rewrite and redesign the core signal pr
 
 ## Design and Approach
 
-The design of this project is still in flux, and will more fully emerge as I become more familiar with Rust and the constraints of each of the core environments on which it will run (Web, desktop/mobile, and Daisy, in particular). However, there are a few abstractions that are beginning to crystallize:
-* The core library, consisting of _Signals_ (which can be individual signal generators or compositions of them) and the _Evaluator_ (which draws samples from Signals), will be completely platform-agnostic and must be integrated with a particular audio API. It will be usable 1) directly in Rust applications, 2) in Audio Worklets by being compiled to Web Assembly with JavaScript API bindings, 3) within C/C++ applications as a bindgen-wrapped library.
-* A set of _Environments_ will be developed, which will provide platform-specific logic for connecting to audio input and output devices, encoding/decoding audio files, and mapping hardware-specifc buses (e.g. GPIO, analog pins, or I2S) to Signals.
+The design of this project is still in flux, and will more fully emerge as I become more familiar with C and the constraints of each of the core environments on which it will run (Web, desktop/mobile, and Daisy, in particular). However, there are a few abstractions that are beginning to crystallize:
+* The core library, consisting of _Signals_ (which can be individual signal generators or compositions of them) and the _Evaluator_ (which draws samples from Signals), will be completely platform-agnostic and must be integrated with a particular audio API. It will be usable 1) directly in C/C++ applications, 2) in Audio Worklets by being compiled to Web Assembly with JavaScript API bindings, 3) within other languages that provide interoperability with the C ABI.
+* A set of _Hosts_ will be developed, which will provide platform-specific logic for connecting to audio input and output devices, encoding/decoding audio files, and mapping hardware-specifc buses (e.g. GPIO, analog pins, or I2S) to Signals.
 
 ## Attribution
 
